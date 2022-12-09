@@ -1,5 +1,5 @@
 const {readFileSync, promises: fsPromises} = require('fs');
-const { PassThrough } = require('stream');
+
     const file = './directories.txt';
 
     function syncReadFile(filename) {
@@ -12,7 +12,9 @@ const { PassThrough } = require('stream');
 
     const arr_read = syncReadFile(file);
 
-    const folder_regex = /(?:\$ cd )(\w+|\/)/;
+    const root_regex = /(?:\$ cd )\//;
+
+    const folder_regex = /(?:\$ cd )(\w+)/;
 
     const child_regex = /(?:dir )(\w+)/;
 
@@ -20,51 +22,50 @@ const { PassThrough } = require('stream');
 
     const cdline_regex = /\$ cd .+/;
 
-    let arr_folders = [];
+    let current_path = [];
 
     let folder = new Map();
 
-    for (var i = 0; i < arr_read.length; i++){
+    function current_directory(directory, object_map = new Map([['sum', 0]])){
+        if (directory === '..'){
+            current_path.pop();
+        }
+        current_path.push(object_map);
+    }
+
+    for (let i = 0; i < arr_read.length; i++){
+        // $ cd /
+        if (root_regex.test(arr_read[i]) === true){
+            let directory = '/';
+            let folder_name = 'root';
+            let root = new Map([['sum', 0]]);
+            
+            folder.set(folder_name, root);
+            current_directory(directory, root);
+        }
+        // $ cd dfghsdfgs
         if (folder_regex.test(arr_read[i]) === true){
-            let folder_name = [...arr_read[i].matchAll(folder_regex)][0][1];
-            folder.set('name',folder_name);
-            folder.set('sum',0);
-            folder.set('child',[]);
+            let directory = [...arr_read[i].matchAll(folder_regex)][0][1];
+            let current = current_path[current_path.length - 1].get(directory);
+            current_directory(directory, current);
         }
+        // dir asdfasdfas
         if (child_regex.test(arr_read[i]) === true){
-            let child_name = [...arr_read[i].matchAll(child_regex)][0][1];
-            folder.set('child',[...folder.get('child'),child_name]);
+            let folder_name = [...arr_read[i].matchAll(child_regex)][0][1];
+            let folder = new Map([['sum', 0]]);
+            current_path[current_path.length - 1].set(folder_name,folder);
         }
+        // 132454 asdasdd.sfs
         if (file_regex.test(arr_read[i]) === true){
-            let file_size = [...arr_read[i].matchAll(file_regex)][0][1]
-            folder.set('sum', folder.get('sum') + Number(file_size));
+            let file_size = [...arr_read[i].matchAll(file_regex)][0][1];
+            let current_directory = current_path[current_path.length - 1];
+            current_directory.set('sum', current_directory.get('sum') + Number(file_size));
         }
-        if (cdline_regex.test(arr_read[i + 1]) === true){
-            let folder_copy = new Map([...folder]);
-            arr_folders.push(folder_copy);
-            folder.clear();
+        // $ cd ..
+        if (cdline_regex.test(arr_read[i]) === true){
+            current_directory('..')
         }
+        if (arr_read[i] === '$ ls') continue;
     }
 
-    let folders_right_size = [];
-    arr_folders.forEach(element => {
-        if (element.size > 0 && element.get('sum') <= 100000)
-        {
-            folders_right_size.push(element);
-        }
-    });
-    let folder_right_name = folders_right_size.map(el => el.get('name'));
-
-    function getSumWithName(name, array_map){
-        return array_map.filter(el => el.get('name') === name).reduce((acc, el) => acc + el.get('sum'),0)
-    }
-
-    folders_right_size.forEach((element, index, array) => {
-        if (element.get('child').length == 0) return;
-        if (element.get('child').every(el => folder_right_name.includes(el)) == false){
-            array.splice(index, 1);
-        }
-        element.set('sum', folder.get('sum') + element.get('child').reduce((acc, name) => acc + getSumWithName(name,folders_right_size),0));
-    })
-
-    console.log(folders_right_size);
+    console.log(current_path);
