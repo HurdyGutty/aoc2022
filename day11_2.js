@@ -14,7 +14,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
     function math_it_up(operation) {
         let split = operation.split(' ');
         if (split[2] === 'old'){
-            if (split[1] === '+') return (n) => (2 * n);
+            if (split[1] === '+') return (n) => (n + n);
             if (split[1] === '-') return 0;
             if (split[1] === '*') return (n) => (n * n);
             if (split[1] === '/') return 1;
@@ -38,13 +38,15 @@ const {readFileSync, promises: fsPromises} = require('fs');
         };
     });
 
-    for (let round = 0; round < 20; round++){
+    let lcm = monkeys.reduce((acc, el) => acc * el.divider,1n);
+
+    for (let round = 0; round < 10000; round++){
         for ( let monkey of monkeys){
             for (i = 0; i < monkey.items.length; i++)
             {
                 let item = monkey.items[i];
                 monkey.inspected++;
-                let worry = BigInt(item);
+                let worry = monkey.operation(item) % lcm;
                 if (monkey.test(worry)) {
                     monkeys[monkey.true_push].items.push(worry);
                 } else {
@@ -57,4 +59,4 @@ const {readFileSync, promises: fsPromises} = require('fs');
 
     let inspected_count = monkeys.map(el => el.inspected).sort((a,b) => b-a);
 
-    console.log(Number.isSafeInteger(monkeys[0].items[0]));
+    console.log(inspected_count[0]*inspected_count[1]);
