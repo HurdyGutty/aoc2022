@@ -51,7 +51,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
 
     let current = S_coordinate;
     while ( current[0] != E_coordinate[0] && current[1] != E_coordinate[1]){
-        if (current[1] == E_coordinate[1]) current[1] += Math.sign(E_coordinate[1] - current[1]) * 1;
-        if (current[0] == E_coordinate[0]) current[0] += Math.sign(E_coordinate[0] - current[0]) * 1;
-        
+        if (current[1] != E_coordinate[1]) current[1] += Math.sign(E_coordinate[1] - current[1]) * 1;
+        if (current[0] != E_coordinate[0]) current[0] += Math.sign(E_coordinate[0] - current[0]) * 1;
+
     }
