@@ -1,6 +1,6 @@
 const {readFileSync, promises: fsPromises} = require('fs');
 
-    const file = './monkeys.txt';
+    const file = './elevation.txt';
 
     function syncReadFile(filename) {
             const contents = readFileSync(filename, 'utf-8');
@@ -29,29 +29,55 @@ const {readFileSync, promises: fsPromises} = require('fs');
         return char;
     }
 
-    let check_path = (current, next) => {
+    let check_elevation = (current, next) => {
         let current_elevation = convert(arr_read[current[0]][current[1]]);
         let next_elevation = convert(arr_read[next[0]][next[1]]);
 
-        return (current_elevation <= next_elevation) ? true : false;
+        return (next_elevation.charCodeAt() - current_elevation.charCodeAt() <= 1) ? true : false;
     }
 
     let check_border = (coordinate) => {
-        if (coordinate[0] > arr_read.length) return false;
-        if (coordinate[1] > arr_read[0].length) return false;
+        if (coordinate[0] >= arr_read.length) return false;
+        if (coordinate[1] >= arr_read[0].length) return false;
         if (coordinate[0] < 0) return false;
         if (coordinate[1] < 0) return false;
         return true;
     }
 
-    let repeated = (previous, next) => {
-        if (previous.every((val, index) => val === next[index])) return true;
+    let repeated = (path, next) => {
+        if (path.some(el => (el[0] === next[0] && el[1] === next[1]))) return true;
         return false;
     }
 
-    let current = S_coordinate;
-    while ( current[0] != E_coordinate[0] && current[1] != E_coordinate[1]){
-        if (current[1] != E_coordinate[1]) current[1] += Math.sign(E_coordinate[1] - current[1]) * 1;
-        if (current[0] != E_coordinate[0]) current[0] += Math.sign(E_coordinate[0] - current[0]) * 1;
+    let legit_coordinate = (path, coordinate) => {
+        if (check_border(coordinate) && check_elevation(path[path.length - 1], coordinate && !repeated(path, coordinate))){
+            return true;
+        }else{
+            return false;
+        }
+    }
 
+    let current = S_coordinate;
+    let path = [current];
+    let final_path = [];
+    function path_maker(path, current){
+        let up = [current[0] - 1, current[1]];
+        let down = [current[0] + 1, current[1]];
+        let left = [current[0], current[1] - 1];
+        let right = [current[0], current[1] + 1];
+
+        if (current[0] != E_coordinate[0] && current[1] != E_coordinate[1]){
+           return [...path, current]; 
+        }
+
+        if (
+            !legit_coordinate(path, up) && 
+            !legit_coordinate(path, down) && 
+            !legit_coordinate(path, left) && 
+            !legit_coordinate(path, right)
+            ){
+            return [];
+        }
+
+        final_path.push(path)
     }
