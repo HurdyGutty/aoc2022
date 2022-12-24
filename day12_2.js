@@ -44,7 +44,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
         let current_elevation = grid[current[0]][current[1]];
         let next_elevation = grid[next[0]][next[1]];
 
-        return (next_elevation - current_elevation <= 1) ? true : false;
+        return (current_elevation - next_elevation <= 1 ) ? true : false;
     }
 
     let repeated = (path, next) => {
@@ -52,7 +52,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
         return false;
     }
 
-    let visiting = [S_coordinate];
+    let visiting = [E_coordinate];
     let waiting = [];
     let visited = [];
     let cell_count = row_count * column_count;
@@ -61,7 +61,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
     let step;
     for (step = 0 ; step < cell_count; step++){
         for (let current of visiting){
-            if ((current[0] == E_coordinate[0] && current[1] == E_coordinate[1])){
+            if ((grid[current[0]][current[1]] == 1)){
                 break_check = true;
                 break;
             }
