@@ -57,34 +57,32 @@ const {readFileSync, promises: fsPromises} = require('fs');
         }
         
     }
-    let temp_arr = [];
 
-    let merge_sort = (arr, l, r) => {
-        if (l >= r) return;
-        if (r - l == 1){
-            if (!compare_array(arr[l], arr[r])) {
-                [arr[r], arr[l]] = [arr[l], arr[r]];
-                return;
-            }
-        }
-        let mid = l + (r - 1)/2;
-        merge_sort(arr, l, mid);
-        merge_sort(arr, mid +1, r);
-        let i,temp_index = l;
-        let j = mid + 1;
-        while (i <= mid && j <= r){
-            if (!compare_array(arr[i], arr[j])) {
-                [arr[r], arr[i]] = [arr[i], arr[r]];
-                i++;
-            } else {
+    const mergeSort = (arr) => {
+        if (arr.length <= 1) return arr;
 
-            }
-        }
-
-
+        let right = [...arr];
+        let mid = arr.length / 2;
+        let left = right.splice(0, mid);
+        
+        return mergeArraySorted(mergeSort(left), mergeSort(right));
     }
 
+    const mergeArraySorted = (left, right) => {
+        let temp_arr = [];
+        while (left.length && right.length){
+            if (compare_array(left[0], right[0]) == true){
+                temp_arr.push(left.shift());
+            } else {
+                temp_arr.push(right.shift());
+            }
+        }
 
+        return [...temp_arr, ...left, ...right];
+    }
 
-    console.log(arr_read);
+    let sorted = mergeSort(packets);
+    let key = (sorted.findIndex(el => el == first_divider_packet) + 1 ) * ((sorted.findIndex(el => el == second_divider_packet) + 1 ))
+
+    console.log(key);
 
