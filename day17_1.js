@@ -23,22 +23,31 @@ const {readFileSync, promises: fsPromises} = require('fs');
     let landed = (shape) => {
         return shape.some(el => rested.some(landed => (landed[0] == el[0] && landed[1] == el[1])));
     }
-    let move = (direction, shape) => {
+    let move = (direction, shape, rock_shape = 0) => {
         if (direction == "<") {
-            if(shape.every(el => el[1] - 1 >= 0 )){
-                let new_shape = shape.map(el => [el[0], el[1] - 1]);
-                if (!landed(new_shape)) return new_shape;
+            if (rock_shape == 1){
+                if(shape[1][1] - 1 >= 0 ){
+                    let new_shape = shape.map(el => [el[0], el[1] - 1]);
+                    if (!landed(new_shape)) return new_shape;
+                }
+            } else {
+                if(shape[0][1] - 1 >= 0 ){
+                    let new_shape = shape.map(el => [el[0], el[1] - 1]);
+                    if (!landed(new_shape)) return new_shape;
+                }
             }
         }
+
         if (direction == ">") {
-            if(shape.every(el => el[1] + 1 <= 6 )){
+            if(shape[3][1] + 1 <= 6 ){
                 let new_shape = shape.map(el => [el[0], el[1] + 1]);
                 if (!landed(new_shape)) return new_shape;
             }
         }
+
         if (direction == "down") {
-            if(shape.every(el => el[0] - 1 >= 0 )){
-                let new_shape = shape.map(el => [el[0] + 1, el[1]]);
+            if(shape[0][0] - 1 > 0 ){
+                let new_shape = shape.map(el => [el[0] - 1, el[1]]);
                 if (!landed(new_shape)) return new_shape;
             }
         }
@@ -51,16 +60,24 @@ const {readFileSync, promises: fsPromises} = require('fs');
     let rock_shape = 0;
     let movement = 0;
     while (rock_count > 0){
-        let shape = shape_arr[rock_shape].map(el => [el[0] + highest, el[1]]);
+        let shape = shape_arr[rock_shape].map(el => [el[0] + highest + 4, el[1]]);
         let new_shape = shape;
         while (new_shape !== false){
-            if (move(contents[movement], new_shape)) new_shape = move(contents[movement], new_shape);
+            if (move(contents[movement], new_shape , rock_shape)) new_shape = move(contents[movement], new_shape, rock_shape);
+            movement = movement < contents.length - 1 ? movement + 1 : 0;
             if (move('down', new_shape)) {
-                
+                new_shape = move('down', new_shape);
             } else {
-
+                shape = new_shape;
+                new_shape = move('down', new_shape);
             }
         }
-        
+        shape.forEach(el => rested.push(el));
+        let current_shape_height = shape[shape.length - 1][0];
+        highest =  current_shape_height > highest ? current_shape_height : highest;
+        rested = rested.filter(el => el[0] >= highest - 50);
+        rock_shape = (rock_shape < 4) ? rock_shape + 1 : 0;
+        rock_count--;
     }
-    console.log(arr_read);
+
+    console.log(highest);
