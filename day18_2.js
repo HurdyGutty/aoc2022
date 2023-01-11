@@ -5,7 +5,7 @@ const {readFileSync, promises: fsPromises} = require('fs');
     function syncReadFile(filename) {
             const contents = readFileSync(filename, 'utf-8');
                
-            const arr = contents.split(/\r?\n/).map(el => el.split(',').map(Number));        
+            const arr = contents.split(/\r?\n/);        
             return arr;
           
     }
@@ -20,8 +20,10 @@ const {readFileSync, promises: fsPromises} = require('fs');
         cubes.forEach(el => lava_map.set(el, 6));
 
         cubes.forEach(el => {
+            let [x, y, z] = el.split(",").map(Number);
             for (let cube of lava_map.keys()){
-                if (Math.abs(el[0] - cube[0]) + Math.abs(el[1] - cube[1]) + Math.abs(el[2] - cube[2]) == 1){
+                let [x2, y2, z2] = cube.split(",").map(Number);
+                if (Math.abs(x - x2) + Math.abs(y - y2) + Math.abs(z - z2) == 1){
                     lava_map.set(cube, lava_map.get(cube) - 1);
                 }
             }
@@ -30,75 +32,107 @@ const {readFileSync, promises: fsPromises} = require('fs');
         return [...lava_map.values()].reduce( (acc, el) => acc += el , 0);
     }
 
-    
-
-    let existed = (cube, array = contents) => {
-        return array.some(el => el[0] == cube[0] && el[1] == cube[1] && el[2] == cube[2]);
+    const convert = (cube_string) => {
+        return cube_string.split(',').map(Number);
     }
 
-    let inBorder = ([x, y, z]) => {
-        return (border_min[0] <= x <= border_max[0] && 
-                border_min[1] <= y <= border_max[1] && 
-                border_min[2] <= z <= border_max[2]) ? true : false;
+    contents.sort( (a, b) => {
+        let a_cube = convert(a);
+        let b_cube = convert(b);
+        for (let i = 0, len = Math.min(a_cube.length, b_cube.length); i < len; i++) {
+            if (a_cube[i] > b_cube[i]) return 1;
+            if (a_cube[i] < b_cube[i]) return -1;
+        }
+        return 0;
+    })
+
+    let lava_cubes = {};
+
+    contents.forEach(el => lava_cubes[el] = true);
+
+        
+
+    const inBorder = (cube_string) => {
+        let [x, y, z] = convert(cube_string);
+        return (border_min[0] <= x && x <= border_max[0] && 
+                border_min[1] <= y && y <= border_max[1] && 
+                border_min[2] <= z && z <= border_max[2]) ? true : false;
     }
 
-    let spread = (start) => {
-        let trapped = [];
+    let discarded = {};
+
+    const spread = (start) => {
+        let trapped = {};
+        let visited = {};
         let queue = [start];
         let direction = [[0, 0, 1], [0, 0, -1], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]];
         let is_opened = false;
         while (queue.length > 0 && is_opened === false){
-            let cube = queue.shift();
-            for ([x, y, z] of direction){
-                
-                let adjacent = [cube[0] + x, cube[1] + y, cube[2] + z];
+            let cube_string = queue.shift()
+            let cube = convert(cube_string);
 
-                if (existed(adjacent)){
-                    continue;
-                }
-    
-                if (existed(adjacent, trapped)){
-                    continue;
-                }
-    
-                if (!inBorder(adjacent)) {
-                    is_opened = true;
-                    break;
-                }
-                queue.push(adjacent);
-            }
-            if (is_opened) break;
-            trapped.push(...queue);
-        }
+                for ([x, y, z] of direction){
+                    
+                    let adjacent = `${cube[0] + x},${cube[1] + y},${cube[2] + z}`;
+
+                    if (visited[adjacent]) continue;
+
+                    if (lava_cubes[adjacent]){
+                        continue;
+                    }
         
-        return is_opened ? [] : trapped;
+                    if (trapped[adjacent]){
+                        visited[adjacent] = true;
+                        continue;
+                    }
+        
+                    if (!inBorder(adjacent) || discarded(adjacent)) {
+                        is_opened = true;
+                        break;
+                    }
+                    queue.push(adjacent);
+                }
+
+            visited[cube_string] = true;
+            if (is_opened) {
+                discarded = {...discarded,...visited};
+                queue.forEach(el => discarded[el] = true);
+                visited = {};
+                break;
+            }
+            
+        }
+        trapped = {...trapped,...visited};
+        return is_opened ? {} : trapped;
     } 
 
-    let border_max = new Array(...contents[0]);
-    let border_min = new Array(...contents[0]);
+    let border_max = convert(contents[0]);
+    let border_min = convert(contents[0]);
 
     contents.forEach( el => {
-        for (let i = 0, len = Math.min(border_max.length, el.length, border_min.length); i < len; i++) {
-            border_max[i] = el[i] > border_max[i] ? el[i] : border_max[i];
-            border_min[i] = el[i] < border_min[i] ? el[i] : border_min[i];
+        let lava_cube = convert(el);
+        for (let i = 0, len = Math.min(border_max.length, lava_cube.length, border_min.length); i < len; i++) {
+            border_max[i] = lava_cube[i] > border_max[i] ? lava_cube[i] : border_max[i];
+            border_min[i] = lava_cube[i] < border_min[i] ? lava_cube[i] : border_min[i];
         }
     });
 
-    let cubes_insides = [];
+    let cubes_insides = {};
 
-    contents.forEach(el => {
-        for (let [x, y, z] of contents){
-            if (el[0] == x && el[1] == y && el[2] != z){
-                let inside = [x, y, Number((el[2] + z) / 2)];
+    for (let i = 0; i < contents.length - 1; i++){
+        let current = convert(contents[i]);
+        let next = convert(contents[i + 1]);
+        if (current[0] == next[0] && current[1] == next[1] && current[2] != next[2]){
+            let inside = `${current[0]},${current[1]},${Math.floor((current[2] + next[2]) / 2)}`;
+            if (discarded[inside]) continue;
 
-                if (!existed(inside) && !existed(inside, cubes_insides)) {
-                    cubes_insides.push(...spread(inside));
-                }
+            if (!lava_cubes[inside] && !cubes_insides[inside]) {
+                cubes_insides = {...cubes_insides,...spread(inside)};
             }
         }
-    });
+    }
 
-    let result = surface_area(contents) - surface_area(cubes_insides);
+    let result = surface_area(contents) - surface_area(Object.keys(cubes_insides));
 
     console.log(result);
 
